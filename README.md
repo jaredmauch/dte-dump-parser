@@ -51,6 +51,15 @@ small, within the budget of not running a microwave.  I've added some percentile
 breakdowns as well so you can use this to try and target the sweet spot based on
 your own historical data.
 
+If you are not familiar with why percentiles are an important way to review data
+like this, a quick review of this data shows that at the 75th percentile you
+have far less than the peak shortfall 75% of the time and just 25% of the time
+you are in that case where there is excess power usage.  Since we as humans tend
+to adjust our behavior based on things like a known power outage, you can expect
+that even if you target the 75th percentile with either additional power
+generation via solar or even a generator to add supplemental power to your
+storage it won't need to run for long or often.
+
 If you are also fetching data from another system, eg: directly from your
 Powerly Energy Bridge device and storing it in something like influxdb, you may
 be able to create some more detailed and accurate usage breakdowns for power
@@ -61,7 +70,7 @@ but I have no other ones to factor in.
 
 
 ```
-./xml_usage_parser.py office_electric_usage.20240529_20250330.xml --kwh-budget 30 --kwh-hours 12
+./xml_usage_parser.py office_electric_usage.20240529_20250330.xml --battery-size-kwh 30 --battery-runtime-hours 12
 Processing XML file...
 
 XML File Date Range:
@@ -76,29 +85,29 @@ Electric Usage Summary for Electric Data
 Meter ID: YOUR_METER_UUID
 
 Peak Usage:
-  Hourly: 8.82 kW
-  Daily:  92.32 kWh
+Hourly: 8.82 kW
+Daily:  92.32 kWh
 
 Average Usage:
-  Hourly: 1.33 kW
-  Daily:  31.91 kWh
+Hourly: 1.33 kW
+Daily:  31.91 kWh
 
 Period Coverage:
-  307 days (7342 hours)
+307 days (7342 hours)
+From: 2024-05-29 00:00:00
+To:   2025-03-30 23:00:00
+
+File Coverage:
+office_electric_usage.20240529_20250330.xml:
   From: 2024-05-29 00:00:00
   To:   2025-03-30 23:00:00
 
-File Coverage:
-  office_electric_usage.20240529_20250330.xml:
-    From: 2024-05-29 00:00:00
-    To:   2025-03-30 23:00:00
-
 Recent Daily Usage:
-  2025-03-26: 31.38 kWh
-  2025-03-27: 31.17 kWh
-  2025-03-28: 18.06 kWh
-  2025-03-29: 13.76 kWh
-  2025-03-30: 25.09 kWh
+2025-03-26: 31.38 kWh
+2025-03-27: 31.17 kWh
+2025-03-28: 18.06 kWh
+2025-03-29: 13.76 kWh
+2025-03-30: 25.09 kWh
 Periods exceeding 30.0 kWh over 12 hours:
 2024-06-22 - Excess: 26.43 kWh (Daylight: 8.7 hours, Watt Shortfall: 3025.5 W)
 2024-06-23 - Excess: 15.83 kWh (Daylight: 8.7 hours, Watt Shortfall: 1811.0 W)
@@ -162,7 +171,16 @@ Budget Analysis Summary
 Total days in source data: 306
 Days within 30.0 kWh budget: 251 (82.0%)
 Days exceeding 30.0 kWh budget: 55 (18.0%)
-Peak watt shortfall: 3757.7 W
+
+Watt Shortfall Statistics:
+Minimum:  7.9 W
+25th %:   259.5 W
+Average:  800.7 W
+Median:   624.7 W
+75th %:   1179.5 W
+90th %:   1614.1 W
+95th %:   2190.0 W
+Peak:     3757.7 W
 ==================================================
 ```
 

@@ -506,15 +506,15 @@ def main():
     parser.add_argument('file_path', help='Path to the XML file')
     parser.add_argument('--verbose', action='store_true', help='Print detailed output')
     parser.add_argument(
-        '--kwh-budget',
+        '--battery-size-kwh',
         type=float,
-        help='Find periods exceeding specified kWh budget'
+        help='Find periods exceeding specified battery capacity in kWh'
     )
     parser.add_argument(
-        '--kwh-hours',
+        '--battery-runtime-hours',
         type=int,
         default=24,
-        help='Duration in hours for kWh budget analysis (default: 24)'
+        help='Duration in hours for battery runtime analysis (default: 24)'
     )
     args = parser.parse_args()
     
@@ -548,9 +548,9 @@ def main():
     for meter_data in all_meter_data.values():
         print_meter_report(meter_data)
         
-        # Handle kWh budget analysis if requested
-        if args.kwh_budget is not None:
-            print_budget_exceeded_periods(meter_data, args.kwh_budget, args.kwh_hours)
+        # Handle battery capacity analysis if requested
+        if args.battery_size_kwh is not None:
+            print_budget_exceeded_periods(meter_data, args.battery_size_kwh, args.battery_runtime_hours)
 
 if __name__ == '__main__':
     main() 
