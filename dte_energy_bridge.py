@@ -72,8 +72,9 @@ def subscribe(client: mqtt_client):
         try:
             print(f"server_data={server_data}")
             # Write to InfluxDB using line protocol
-            # time_precision='s' tells InfluxDB the timestamp is in seconds
-            influx_client.write_points(server_data, protocol='line', time_precision='s')
+            # time_precision='ms' tells InfluxDB the timestamp is in milliseconds
+            influx_client.write_points(server_data, protocol='line', time_precision='ms')
+
             last_success = now
         except influxdb.exceptions.InfluxDBClientError as e:
              print(f"influx error is {e} with {server_data}")
