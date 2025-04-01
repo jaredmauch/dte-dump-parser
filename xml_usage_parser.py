@@ -492,6 +492,101 @@ def print_budget_exceeded_periods(meter_data: MeterData, budget_kwh: float, dura
     print(f"Peak:     {peak_watt_shortfall:.1f} W")
     print("="*50 + "\n")
 
+def calculate_hourly_statistics(meter_data: MeterData) -> Dict[int, Tuple[float, float, float, float, float, float, float]]:
+    """Calculate statistics for each hour of the day.
+    
+    This function analyzes the meter data to compute statistics for each hour,
+    including min, max, average, and percentiles of usage across all days.
+    
+    Args:
+        meter_data: MeterData object containing hourly readings
+        
+    Returns:
+        Dictionary mapping hour (0-23) to tuple of (min, 25th percentile, median, 75th percentile, 90th percentile, average, max)
+    """
+    # Group readings by hour
+    hourly_readings: Dict[int, List[float]] = {hour: [] for hour in range(24)}
+    
+    for timestamp, value in meter_data.hourly_readings.items():
+        hour = datetime.fromtimestamp(timestamp).hour
+        hourly_readings[hour].append(value)
+    
+    # Calculate statistics for each hour
+    hourly_stats = {}
+    
+    def percentile(values: List[float], p: float) -> float:
+        """Calculate the p-th percentile using linear interpolation."""
+        if not values:
+            return 0.0
+        values.sort()
+        n = len(values)
+        k = (n - 1) * p
+        f = int(k)
+        c = k - f
+        if f + 1 >= n:
+            return values[-1]
+        return values[f] * (1 - c) + values[f + 1] * c
+    
+    for hour in range(24):
+        readings = hourly_readings[hour]
+        if readings:
+            hourly_stats[hour] = (
+                min(readings),
+                percentile(readings, 0.25),
+                percentile(readings, 0.50),
+                percentile(readings, 0.75),
+                percentile(readings, 0.90),
+                sum(readings) / len(readings),
+                max(readings)
+            )
+        else:
+            hourly_stats[hour] = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    
+    return hourly_stats
+
+def print_hourly_summary(meter_data: MeterData) -> None:
+    """Print a summary of hourly usage patterns.
+    
+    This function analyzes and displays statistics for each hour of the day,
+    showing the distribution of usage across all days in the dataset.
+    
+    Args:
+        meter_data: MeterData object to analyze
+    """
+    hourly_stats = calculate_hourly_statistics(meter_data)
+    
+    # Column widths
+    hour_width = 5  # HH:00
+    num_width = 8   # For numeric columns
+    
+    # Calculate total width including separators
+    total_width = hour_width + (7 * num_width) + (8 * 3)  # 8 columns (including hour) + separators
+    
+    print("\n" + "="*total_width)
+    print("Hourly Usage Summary")
+    print("="*total_width)
+    
+    # Print header with proper alignment
+    headers = ["Hour", "Min", "25th%", "Median", "75th%", "90th%", "Avg", "Max"]
+    header = (
+        f"{headers[0]:^{hour_width}} | "
+        + " | ".join(f"{h:^{num_width}}" for h in headers[1:])
+    )
+    print(header)
+    print("-"*total_width)
+    
+    # Print data rows with consistent alignment
+    for hour in range(24):
+        min_val, p25, median, p75, p90, avg, max_val = hourly_stats[hour]
+        values = [min_val, p25, median, p75, p90, avg, max_val]
+        row = (
+            f"{hour:02d}:00 | "
+            + " | ".join(f"{v:{num_width}.2f}" for v in values)
+        )
+        print(row)
+    
+    print("="*total_width + "\n")
+
 def main():
     """Parse electric usage XML files and generate a summary report.
     
@@ -515,6 +610,11 @@ def main():
         type=int,
         default=24,
         help='Duration in hours for battery runtime analysis (default: 24)'
+    )
+    parser.add_argument(
+        '--hourly-summary',
+        action='store_true',
+        help='Show detailed statistics for each hour of the day'
     )
     args = parser.parse_args()
     
@@ -551,6 +651,10 @@ def main():
         # Handle battery capacity analysis if requested
         if args.battery_size_kwh is not None:
             print_budget_exceeded_periods(meter_data, args.battery_size_kwh, args.battery_runtime_hours)
+            
+        # Handle hourly summary if requested
+        if args.hourly_summary:
+            print_hourly_summary(meter_data)
 
 if __name__ == '__main__':
     main() 
