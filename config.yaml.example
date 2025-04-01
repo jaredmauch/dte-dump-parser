@@ -4,3 +4,18 @@ influx_port: 8086
 influx_username: energybridge
 influx_db: energybridge
 influx_db_pw: AMI.data.logger
+
+# EnergyBridge configuration
+energybridge:
+  # make sure that /etc/nsswitch.conf has mdns_minimal for this to work
+  # you likely want to update nsswitch.conf as follows if you have not yet
+  # sed -i -e "s/mdns4_minimal/mdns_minimal/" /etc/nsswitch.conf
+  #
+
+  # find with avahi-browse _hostname._tcp -c -r
+  #
+  hostname: "energybridge2-deadbeef.local"  # my house eb2
+  connect_hostname: "energybridge2-deadbeef.local" # or IP address
+  mqtt_port: 2883
+  mqtt_topic: "#"
+
