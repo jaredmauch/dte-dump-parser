@@ -68,6 +68,7 @@ usage during daylight hours or otherwise.
 These scripts should also work with any other data sources with espi xml format,
 but I have no other ones to factor in.
 
+An example where you utilize a 24 vs 12 hour runtime is further down
 
 ```
 ./xml_usage_parser.py office_electric_usage.20240529_20250330.xml --battery-size-kwh 30 --battery-runtime-hours 12
@@ -182,5 +183,50 @@ Median:   624.7 W
 95th %:   2190.0 W
 Peak:     3757.7 W
 ==================================================
+```
+
+Here's 18 and 24 hours with the same information, so if you assume you only want
+to touch an alternative fuel system every 18 hours or 24 hours, you can see with
+the longer runtime goal you fall from 44% of days meeting a target, but with 18
+hours there's much more of a window for adjustment.
+
+
+```
+==================================================
+Budget Analysis Summary
+==================================================
+Total days in source data: 306
+Days within 28.6 kWh budget: 136 (44.4%)
+Days exceeding 28.6 kWh budget: 170 (55.6%)
+
+Watt Shortfall Statistics:
+Minimum:  5.2 W
+25th %:   439.9 W
+Average:  2061.9 W
+Median:   1514.2 W
+75th %:   3619.4 W
+90th %:   4392.7 W
+95th %:   5238.6 W
+Peak:     7431.1 W
+==================================================
+
+==================================================
+Budget Analysis Summary
+==================================================
+Total days in source data: 306
+Days within 28.6 kWh budget: 207 (67.6%)
+Days exceeding 28.6 kWh budget: 99 (32.4%)
+
+Watt Shortfall Statistics:
+Minimum:  3.2 W
+25th %:   672.4 W
+Average:  1700.6 W
+Median:   1654.7 W
+75th %:   2445.2 W
+90th %:   3053.3 W
+95th %:   3854.9 W
+Peak:     5671.4 W
+==================================================
+
 ```
 
