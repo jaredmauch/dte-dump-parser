@@ -1,0 +1,6 @@
+# config for dte_energy_bridge.py
+influx_host: localhost
+influx_port: 8086
+influx_username: energybridge
+influx_db: energybridge
+influx_db_pw: AMI.data.logger
