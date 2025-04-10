@@ -7,11 +7,19 @@ import json
 import influxdb
 import yaml
 import time
+import os
 from paho.mqtt import client as mqtt_client
 
 # Load configuration from config.yaml
-with open('config.yaml', 'r') as f:
-    config = yaml.safe_load(f)
+try:
+    with open('config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+except FileNotFoundError:
+    file_path = os.path.dirname(__file__)
+#    print(file_path)
+    os.chdir(file_path)
+    with open('config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
 
 # EnergyBridge configuration
 eb_config = config['energybridge']
