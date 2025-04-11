@@ -9,6 +9,8 @@ import yaml
 import time
 import os
 from paho.mqtt import client as mqtt_client
+from collections import deque
+from datetime import datetime
 
 # Load configuration from config.yaml
 try:
@@ -29,6 +31,8 @@ connect_hostname = eb_config['connect_hostname']
 mqqt_port = eb_config['mqtt_port']
 mqqt_topic = eb_config['mqtt_topic']
 
+# Initialize backlog queue without size limit
+backlog_queue = deque()
 last_success = None  # Track last successful InfluxDB write
 influx_client = None
 client_id = f'publish-{random.randint(0, 1000)}'  # Unique client ID for MQTT
@@ -38,6 +42,24 @@ client_id = f'publish-{random.randint(0, 1000)}'  # Unique client ID for MQTT
 # mosquitto_sub -h 192.168.4.49 -p 2883 -t '#' -v
 #
 #
+
+def process_backlog():
+    """Process any backlogged points when connection is restored"""
+    global last_success
+    if not backlog_queue:
+        return
+    
+    print(f"Processing backlog of {len(backlog_queue)} points")
+    while backlog_queue:
+        point = backlog_queue.popleft()
+        try:
+            influx_client.write_points(point, protocol='line', time_precision='ms')
+            last_success = time.time() * 1000000000
+        except influxdb.exceptions.InfluxDBClientError as e:
+            # If we fail again, put the point back at the front of the queue
+            backlog_queue.appendleft(point)
+            print(f"Failed to process backlog point: {e}")
+            break
 
 def connect_mqtt() -> mqtt_client:
     def on_connect(one,two,three,four,five):
@@ -80,12 +102,18 @@ def subscribe(client: mqtt_client):
         try:
             print(f"server_data={server_data}")
             # Write to InfluxDB using line protocol
-            # time_precision='ms' tells InfluxDB the timestamp is in milliseconds
             influx_client.write_points(server_data, protocol='line', time_precision='ms')
-
             last_success = now
+            
+            # If we have a successful write, try to process any backlog
+            if backlog_queue:
+                process_backlog()
+                
         except influxdb.exceptions.InfluxDBClientError as e:
-             print(f"influx error is {e} with {server_data}")
+            print(f"influx error is {e} with {server_data}")
+            # Add the failed point to the backlog
+            backlog_queue.append(server_data)
+            print(f"Added point to backlog. Current backlog size: {len(backlog_queue)}")
 
     # subscribe to topics in mqqt_topic
     client.subscribe(mqqt_topic)
