@@ -144,7 +144,7 @@ def main():
         violations = find_violations(data)
         
         # Print results
-        print("\nVoltage Violations (below 110V for more than 10 seconds):")
+        print("\nVoltage Violations (below 110V for more than 5 minutes):")
         print("=" * 80)
         for i, violation in enumerate(violations, 1):
             start_time = format_timestamp(violation['start'])
@@ -165,10 +165,15 @@ def main():
         yearly_availability, count_trend, duration_trend, predictions = analyze_trends(violations)
         
         if yearly_availability:
-            print("\nYearly Availability Analysis:")
+            print("\nHistorical Analysis:")
             print("=" * 80)
             for year, availability in sorted(yearly_availability.items()):
-                print(f"{year}: {availability:.4f}% availability")
+                total_hours = 24 * 365.25
+                outage_hours = (100 - availability) * total_hours / 100
+                print(f"{year}:")
+                print(f"  Number of outages: {len([v for v in violations if v['start'].year == year])}")
+                print(f"  Total outage duration: {outage_hours:.1f} hours")
+                print(f"  Availability: {availability:.4f}%")
             
             print("\nTrend Analysis:")
             print("=" * 80)
