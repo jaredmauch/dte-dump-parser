@@ -11,13 +11,13 @@ from scipy import stats
 #
 
 # InfluxDB connection parameters
-INFLUX_HOST = 'localhost'
+INFLUX_HOST = 'influxdb'
 INFLUX_DB = 'house_power'
 INFLUX_MEASUREMENT = 'voltage'
 
 # Voltage threshold and minimum duration
 VOLTAGE_THRESHOLD = 110
-MIN_DURATION_SECONDS = 300  # DTE says outages less than 5 mins dont matter
+MIN_DURATION_SECONDS = 1  # DTE says outages less than 5 mins dont matter
 
 def connect_to_influx():
     """Connect to InfluxDB and return the client"""
