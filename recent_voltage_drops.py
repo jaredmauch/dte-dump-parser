@@ -131,7 +131,7 @@ def format_duration_ago(timestamp):
     duration = now - timestamp
     
     if duration.days > 0:
-        return f"{duration.days} day{'s' if duration.days != 1 else ''} ago"
+        return f"{duration.days:3d} day{'s' if duration.days != 1 else ''} ago"
     elif duration.seconds >= 3600:
         hours = duration.seconds // 3600
         return f"{hours} hour{'s' if hours != 1 else ''} ago"
@@ -170,7 +170,7 @@ def main():
                 minute_timestamp = format_timestamp(group['minute'])
                 time_ago = format_duration_ago(group['minute'])
                 
-                print(f"Group #{i}: {minute_timestamp} ({time_ago}) - Min: {group['min_voltage']:.2f}V, Max: {group['max_voltage']:.2f}V, Avg: {group['avg_voltage']:.2f}V")
+                print(f"Group #{i:3d}: {minute_timestamp} ({time_ago}) - Min: {group['min_voltage']:6.2f}V, Max: {group['max_voltage']:6.2f}V, Avg: {group['avg_voltage']:6.2f}V")
         
         # Summary statistics
         if grouped_drops:
@@ -180,13 +180,13 @@ def main():
             
             print(f"\nSummary Statistics:")
             print("=" * 80)
-            print(f"Total voltage drops: {total_drops}")
-            print(f"Total time groups: {total_groups}")
-            print(f"Average drops per group: {total_drops / total_groups:.1f}")
+            print(f"Total bad voltage datapoints: {total_drops}")
+            print(f"Total groups: {total_groups}")
+#            print(f"Average drops per group: {total_drops / total_groups:.1f}")
             print(f"Average voltage during drops: {sum(all_voltages) / len(all_voltages):.2f}V")
-            print(f"Lowest voltage recorded: {min(all_voltages):.2f}V")
-            print(f"Highest voltage during drops: {max(all_voltages):.2f}V")
-            print(f"Voltage range: {max(all_voltages) - min(all_voltages):.2f}V")
+#            print(f"Lowest voltage recorded: {min(all_voltages):.2f}V")
+#            print(f"Highest voltage during drops: {max(all_voltages):.2f}V")
+#            print(f"Voltage range: {max(all_voltages) - min(all_voltages):.2f}V")
         
     except Exception as e:
         print(f"Error: {str(e)}")
