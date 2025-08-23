@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pytz
 import time
 from collections import defaultdict
+import sys
 
 # InfluxDB connection parameters
 INFLUX_HOST = 'influxdb'
@@ -116,6 +117,17 @@ def group_drops_by_minute(drops):
         current_group['max_voltage'] = max(drop['voltage'] for drop in merged_drops)
         current_group['avg_voltage'] = sum(drop['voltage'] for drop in merged_drops) / len(merged_drops)
         
+        # Calculate duration of the outage
+        if merged_drops:
+            # Sort drops by timestamp to get start and end times
+            sorted_drops = sorted(merged_drops, key=lambda x: x['timestamp'])
+            start_time = sorted_drops[0]['timestamp']
+            end_time = sorted_drops[-1]['timestamp']
+            duration = end_time - start_time
+            current_group['start_time'] = start_time
+            current_group['end_time'] = end_time
+            current_group['duration'] = duration
+        
         merged_groups.append(current_group)
         i = j  # Skip the groups we just merged
     
@@ -141,7 +153,26 @@ def format_duration_ago(timestamp):
     else:
         return f"{duration.seconds} second{'s' if duration.seconds != 1 else ''} ago"
 
+def format_duration(duration):
+    """Format duration in a human-readable format"""
+    total_seconds = int(duration.total_seconds())
+    
+    if total_seconds < 60:
+        return f"{total_seconds}s"
+    elif total_seconds < 3600:
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        return f"{minutes}m {seconds}s"
+    else:
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        return f"{hours}h {minutes}m {seconds}s"
+
 def main():
+    # Check for verbose flag
+    verbose = '--verbose' in sys.argv
+    
     try:
         # Connect to InfluxDB
         client = connect_to_influx()
@@ -170,7 +201,28 @@ def main():
                 minute_timestamp = format_timestamp(group['minute'])
                 time_ago = format_duration_ago(group['minute'])
                 
-                print(f"Group #{i:3d}: {minute_timestamp} ({time_ago}) - Min: {group['min_voltage']:6.2f}V, Max: {group['max_voltage']:6.2f}V, Avg: {group['avg_voltage']:6.2f}V")
+                if verbose:
+                    # Display detailed information with duration, start, and end times
+                    if 'duration' in group:
+                        duration_str = format_duration(group['duration'])
+                        start_str = format_timestamp(group['start_time'])
+                        end_str = format_timestamp(group['end_time'])
+                        print(f"Group #{i:3d}: {minute_timestamp} ({time_ago}) - Duration: {duration_str}")
+                        print(f"           Start: {start_str} | End: {end_str}")
+                        print(f"           Min: {group['min_voltage']:6.2f}V, Max: {group['max_voltage']:6.2f}V, Avg: {group['avg_voltage']:6.2f}V")
+                    else:
+                        print(f"Group #{i:3d}: {minute_timestamp} ({time_ago}) - Min: {group['min_voltage']:6.2f}V, Max: {group['max_voltage']:6.2f}V, Avg: {group['avg_voltage']:6.2f}V")
+                    
+                    # Add separator between groups
+                    if i < len(grouped_drops):
+                        print("-" * 80)
+                else:
+                    # Simple one-line format with duration inline
+                    if 'duration' in group:
+                        duration_str = format_duration(group['duration'])
+                        print(f"Group #{i:3d}: {minute_timestamp} ({time_ago}) - Duration: {duration_str} - Min: {group['min_voltage']:6.2f}V, Max: {group['max_voltage']:6.2f}V, Avg: {group['avg_voltage']:6.2f}V")
+                    else:
+                        print(f"Group #{i:3d}: {minute_timestamp} ({time_ago}) - Min: {group['min_voltage']:6.2f}V, Max: {group['max_voltage']:6.2f}V, Avg: {group['avg_voltage']:6.2f}V")
         
         # Summary statistics
         if grouped_drops:
