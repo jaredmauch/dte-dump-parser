@@ -9,7 +9,7 @@ import yaml
 import time
 import os
 import logging
-from paho.mqtt import client as mqtt_client
+from paho.mqtt import client as mqtt
 from collections import deque
 from datetime import datetime
 from typing import Optional, Tuple
@@ -312,7 +312,7 @@ def process_backlog():
     if failed_count > 0:
         logger.warning(f"Failed to process {failed_count} backlog points, will retry later")
 
-def connect_mqtt() -> mqtt_client:
+def connect_mqtt() -> mqtt.Client:
     def on_connect(client, userdata, flags, reason_code, properties):
         global mqtt_connected, mqtt_last_message_time
         if reason_code == 0:
@@ -328,7 +328,7 @@ def connect_mqtt() -> mqtt_client:
         logger.warning(f"Disconnected from MQTT broker: {reason_code}")
         mqtt_connected = False
 
-    client = mqtt_client.Client(client_id=client_id, clean_session=False, callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2)
+    client = mqtt.Client(client_id=client_id, clean_session=False, callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
 
     # client.username_pw_set(username, password)
     client.on_connect = on_connect
@@ -339,7 +339,7 @@ def connect_mqtt() -> mqtt_client:
     return client
 
 
-def subscribe(client: mqtt_client):
+def subscribe(client: mqtt.Client):
     def on_message(client, userdata, msg):
         global mqtt_last_message_time
         # Update message timestamp for health monitoring
