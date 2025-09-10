@@ -68,6 +68,67 @@ usage during daylight hours or otherwise.
 These scripts should also work with any other data sources with espi xml format,
 but I have no other ones to factor in.
 
+## DTE Energy Bridge - Real-time Data Collection
+
+The `dte_energy_bridge.py` script provides real-time data collection from DTE Energy Bridge devices via MQTT and stores the data in InfluxDB. This script has been enhanced with robust error handling and reconnection capabilities.
+
+### Key Features
+
+- **Automatic Reconnection**: Handles InfluxDB timeouts and connection failures gracefully
+- **Circuit Breaker Pattern**: Prevents cascading failures by temporarily stopping requests after repeated failures
+- **Exponential Backoff**: Implements intelligent retry logic with increasing delays
+- **Data Backlog**: Queues failed data points for retry when connection is restored
+- **Health Monitoring**: Continuously monitors InfluxDB connection health
+- **Comprehensive Logging**: Detailed logging for troubleshooting and monitoring
+
+### Error Handling Improvements
+
+The script now handles various InfluxDB error conditions:
+
+- **Timeout Errors**: Automatically retries with exponential backoff
+- **Connection Failures**: Attempts reconnection and processes backlog
+- **Server Errors**: Distinguishes between retryable and non-retryable errors
+- **Circuit Breaker**: Opens after 10 consecutive failures, closes after 5 minutes
+
+### Configuration
+
+The script uses `config.yaml` for configuration:
+
+```yaml
+influx_host: your-influxdb-host
+influx_port: 8086
+influx_username: your-username
+influx_db: your-database
+influx_db_pw: your-password
+
+energybridge:
+  hostname: "energybridge2-1d2161d4ea9c2bd7.local"
+  connect_hostname: "energybridge2-1d2161d4ea9c2bd7.local"
+  mqtt_port: 2883
+  mqtt_topic: "#"
+```
+
+### Running the Bridge
+
+```bash
+python3 dte_energy_bridge.py
+```
+
+The script will:
+1. Connect to the MQTT broker
+2. Subscribe to energy bridge topics
+3. Write data to InfluxDB with automatic retry
+4. Monitor connection health in the background
+5. Process any backlogged data when connection is restored
+
+### Testing Error Handling
+
+A test script is included to verify the error handling functionality:
+
+```bash
+python3 test_error_handling.py
+```
+
 An example where you utilize a 24 vs 12 hour runtime is further down
 
 ```
