@@ -315,18 +315,24 @@ def process_backlog():
 def connect_mqtt() -> mqtt.Client:
     def on_connect(client, userdata, flags, reason_code, properties):
         global mqtt_connected, mqtt_last_message_time
-        if reason_code == 0:
-            logger.info("Successfully connected to MQTT broker")
-            mqtt_connected = True
-            mqtt_last_message_time = time.time()  # Initialize message timer
-        else:
-            logger.error(f"Failed to connect to MQTT broker: {reason_code}")
-            mqtt_connected = False
+        try:
+            if reason_code == 0:
+                logger.info("Successfully connected to MQTT broker")
+                mqtt_connected = True
+                mqtt_last_message_time = time.time()  # Initialize message timer
+            else:
+                logger.error(f"Failed to connect to MQTT broker: {reason_code}")
+                mqtt_connected = False
+        except Exception as e:
+            logger.error(f"Error in on_connect callback: {e}")
 
     def on_disconnect(client, userdata, flags, reason_code, properties):
         global mqtt_connected
-        logger.warning(f"Disconnected from MQTT broker: {reason_code}")
-        mqtt_connected = False
+        try:
+            logger.warning(f"Disconnected from MQTT broker: {reason_code}")
+            mqtt_connected = False
+        except Exception as e:
+            logger.error(f"Error in on_disconnect callback: {e}")
 
     client = mqtt.Client(client_id=client_id, clean_session=False, callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
 
@@ -342,39 +348,56 @@ def connect_mqtt() -> mqtt.Client:
 def subscribe(client: mqtt.Client):
     def on_message(client, userdata, msg):
         global mqtt_last_message_time
-        # Update message timestamp for health monitoring
-        mqtt_last_message_time = time.time()
-        
-        logger.debug(f"Received MQTT message on topic: {msg.topic}")
-        # Convert MQTT topic to InfluxDB measurement name
-        oid = sub_hostname + '.' + msg.topic.replace('/', '.')
-        payload = json.loads(msg.payload.decode())
-        logger.debug(f"Decoded payload = {payload}")
-        
-        # DTE provides timestamps as Unix time_t (seconds since epoch)
-        # We keep it in this format and let InfluxDB handle the precision
-        timestamp = payload.get('time')
-        now = time.time() * 1000000000  # Current time in nanoseconds for last_success tracking
-        msg_type = payload.get('type', None)
-        demand = payload.get('demand', 0)
-        value = payload.get('value', 0)
+        try:
+            # Update message timestamp for health monitoring
+            mqtt_last_message_time = time.time()
+            
+            logger.debug(f"Received MQTT message on topic: {msg.topic}")
+            
+            # Safely decode the payload
+            try:
+                payload_str = msg.payload.decode('utf-8')
+                payload = json.loads(payload_str)
+                logger.debug(f"Decoded payload = {payload}")
+            except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                logger.warning(f"Failed to decode MQTT message: {e}")
+                return
+            
+            # Convert MQTT topic to InfluxDB measurement name
+            oid = sub_hostname + '.' + msg.topic.replace('/', '.')
+            
+            # DTE provides timestamps as Unix time_t (seconds since epoch)
+            # We keep it in this format and let InfluxDB handle the precision
+            timestamp = payload.get('time')
+            if timestamp is None:
+                logger.warning(f"No timestamp in message: {payload}")
+                return
+                
+            msg_type = payload.get('type', None)
+            demand = payload.get('demand', 0)
+            value = payload.get('value', 0)
 
-        # Format data for InfluxDB line protocol
-        # Format: measurement field=value timestamp
-        if 'demand' in oid:
-            server_data = f"{oid} value=%.2f {timestamp}\n" % demand
-        else:
-            server_data = f"{oid} value=%.2f {timestamp}\n" % value
+            # Format data for InfluxDB line protocol
+            # Format: measurement field=value timestamp
+            if 'demand' in oid:
+                server_data = f"{oid} value=%.2f {timestamp}\n" % demand
+            else:
+                server_data = f"{oid} value=%.2f {timestamp}\n" % value
 
-        logger.debug(f"server_data={server_data}")
-        
-        # Use the new retry logic for writing to InfluxDB
-        if write_to_influxdb_with_retry(server_data):
-            # If we have a successful write, try to process any backlog
-            if backlog_queue:
-                process_backlog()
-        else:
-            logger.warning(f"Failed to write data point, added to backlog. Current backlog size: {len(backlog_queue)}")
+            logger.debug(f"server_data={server_data}")
+            
+            # Use the new retry logic for writing to InfluxDB
+            if write_to_influxdb_with_retry(server_data):
+                # If we have a successful write, try to process any backlog
+                if backlog_queue:
+                    process_backlog()
+            else:
+                logger.warning(f"Failed to write data point, added to backlog. Current backlog size: {len(backlog_queue)}")
+                
+        except Exception as e:
+            logger.error(f"Error processing MQTT message: {e}")
+            # Still update the message timestamp to keep connection healthy
+            mqtt_last_message_time = time.time()
 
     # subscribe to topics in mqqt_topic
     client.subscribe(mqqt_topic)
