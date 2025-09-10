@@ -193,7 +193,7 @@ def check_influxdb_health() -> bool:
 
 def check_mqtt_health() -> bool:
     """Check if MQTT connection is healthy based on recent message activity"""
-    global mqtt_last_message_time, mqtt_connected
+    global mqtt_last_message_time, mqtt_connected, mqtt_client
     
     if mqtt_client is None:
         logger.warning("MQTT client is not initialized")
